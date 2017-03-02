@@ -1,0 +1,34 @@
+{
+  "name": "meteor-param-check",
+  "version": "0.1.0",
+  "description": "Meteor check package ported.",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoeyAndres/meteor-param-check.git"
+  },
+  "author": "Joey Andres",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JoeyAndres/meteor-param-check/issues"
+  },
+  "homepage": "https://github.com/JoeyAndres/meteor-param-check#readme",
+  "devDependencies": {
+    "babel-cli": "^6.23.0",
+    "babel-core": "^6.23.1",
+    "babel-preset-env": "^1.1.10",
+    "babel-preset-es2015": "^6.22.0",
+    "chai": "^3.5.0",
+    "gulp": "^3.9.1",
+    "gulp-babel": "^6.1.2",
+    "gulp-concat": "^2.6.1",
+    "mocha": "^3.2.0"
+  },
+  "dependencies": {
+    "ejson": "^2.1.2",
+    "lodash": "^4.17.4"
+  }
+}
