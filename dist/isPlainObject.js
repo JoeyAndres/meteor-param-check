@@ -6,6 +6,12 @@ Object.defineProperty(exports, "__esModule", {
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
+var _underscore = require("underscore");
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 // Copy of jQuery.isPlainObject for the server side from jQuery v1.11.2.
 
 var class2type = {};
@@ -17,7 +23,7 @@ var hasOwn = class2type.hasOwnProperty;
 var support = {};
 
 // Populate the class2type map
-_.each("Boolean Number String Function Array Date RegExp Object Error".split(" "), function (name, i) {
+_underscore2.default.each("Boolean Number String Function Array Date RegExp Object Error".split(" "), function (name, i) {
   class2type["[object " + name + "]"] = name.toLowerCase();
 });
 
@@ -33,7 +39,7 @@ function isWindow(obj) {
   return obj != null && obj == obj.window;
 }
 
-exports.default = isPlainObject = function isPlainObject(obj) {
+function isPlainObject(obj) {
   var key;
 
   // Must be an Object.
@@ -67,3 +73,5 @@ exports.default = isPlainObject = function isPlainObject(obj) {
 
   return key === undefined || hasOwn.call(obj, key);
 };
+
+exports.default = isPlainObject;

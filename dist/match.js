@@ -1,6 +1,21 @@
 'use strict';
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; // XXX docs
+
+// Things we explicitly do NOT support:
+//    - heterogenous arrays
+
+var _underscore = require('underscore');
+
+var _underscore2 = _interopRequireDefault(_underscore);
+
+var _ejson = require('ejson');
+
+var _ejson2 = _interopRequireDefault(_ejson);
+
+var _CheckError = require('./CheckError');
+
+var _CheckError2 = _interopRequireDefault(_CheckError);
 
 var _isPlainObject = require('./isPlainObject');
 
@@ -8,13 +23,12 @@ var _isPlainObject2 = _interopRequireDefault(_isPlainObject);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-// XXX docs
-
-// Things we explicitly do NOT support:
-//    - heterogenous arrays
-
-var currentArgumentChecker = new Meteor.EnvironmentVariable();
-
+var currentArgumentChecker = {
+  // TODO: Deal with fiber.
+  getOrNullIfOutsideFiber: function getOrNullIfOutsideFiber() {
+    return false;
+  }
+};
 
 /**
  * @summary Check that a value matches a [pattern](#matchpatterns).
@@ -61,7 +75,7 @@ var Match = exports.Match = {
     return new _Maybe(pattern);
   },
   OneOf: function OneOf() /*arguments*/{
-    return new _OneOf(_.toArray(arguments));
+    return new _OneOf(_underscore2.default.toArray(arguments));
   },
   Any: ['__any__'],
   Where: function Where(condition) {
@@ -77,17 +91,7 @@ var Match = exports.Match = {
   Integer: ['__integer__'],
 
   // XXX matchers should know how to describe themselves for errors
-  Error: Meteor.makeErrorType("Match.Error", function (msg) {
-    this.message = "Match error: " + msg;
-    // The path of the value that failed to match. Initially empty, this gets
-    // populated by catching and rethrowing the exception as it goes back up the
-    // stack.
-    // E.g.: "vals[3].entity.created"
-    this.path = "";
-    // If this gets sent over DDP, don't give full internal details but at least
-    // provide something better than 500 Internal server error.
-    this.sanitizedError = new Meteor.Error(400, "Match failed");
-  }),
+  Error: _CheckError2.default,
 
   // Tests to see if value matches pattern. Unlike check, it merely returns true
   // or false (unless an error other than Match.Error was thrown). It does not
@@ -95,6 +99,9 @@ var Match = exports.Match = {
   // XXX maybe also implement a Match.match which returns more information about
   //     failures but without using exception handling or doing what check()
   //     does with _failIfArgumentsAreNotAllChecked and Meteor.Error conversion
+  //
+  // TODO(jandres): _failIfArgumentsAreNotAllChecked is currently not supported,
+  //                until CHECK-4
 
   /**
    * @summary Returns true if the value matches the pattern.
@@ -104,20 +111,6 @@ var Match = exports.Match = {
    */
   test: function test(value, pattern) {
     return !testSubtree(value, pattern);
-  },
-
-  // Runs `f.apply(context, args)`. If check() is not called on every element of
-  // `args` (either directly or in the first level of an array), throws an error
-  // (using `description` in the message).
-  //
-  _failIfArgumentsAreNotAllChecked: function _failIfArgumentsAreNotAllChecked(f, context, args, description) {
-    var argChecker = new ArgumentChecker(args, description);
-    var result = currentArgumentChecker.withValue(argChecker, function () {
-      return f.apply(context, args);
-    });
-    // If f didn't itself throw, make sure it checked all of its arguments.
-    argChecker.throwUnlessAllArgumentsHaveBeenChecked();
-    return result;
   }
 };
 
@@ -130,7 +123,7 @@ var _Maybe = function _Maybe(pattern) {
 };
 
 var _OneOf = function _OneOf(choices) {
-  if (_.isEmpty(choices)) throw new Error("Must provide at least one choice to Match.OneOf");
+  if (_underscore2.default.isEmpty(choices)) throw new Error("Must provide at least one choice to Match.OneOf");
   this.choices = choices;
 };
 
@@ -157,7 +150,7 @@ var stringForErrorMessage = function stringForErrorMessage(value, options) {
 
   // Your average non-object things.  Saves from doing the try/catch below for.
   if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) !== "object") {
-    return EJSON.stringify(value);
+    return _ejson2.default.stringify(value);
   }
 
   try {
@@ -170,7 +163,7 @@ var stringForErrorMessage = function stringForErrorMessage(value, options) {
     }
   }
 
-  return EJSON.stringify(value);
+  return _ejson2.default.stringify(value);
 };
 
 var typeofChecks = [[String, "string"], [Number, "number"], [Boolean, "boolean"],
@@ -240,7 +233,7 @@ var testSubtree = function testSubtree(value, pattern) {
         path: ""
       };
     }
-    if (!_.isArray(value) && !_.isArguments(value)) {
+    if (!_underscore2.default.isArray(value) && !_underscore2.default.isArguments(value)) {
       return {
         message: "Expected array, got " + stringForErrorMessage(value),
         path: ""
@@ -353,14 +346,14 @@ var testSubtree = function testSubtree(value, pattern) {
 
   var requiredPatterns = {};
   var optionalPatterns = {};
-  _.each(pattern, function (subPattern, key) {
+  _underscore2.default.each(pattern, function (subPattern, key) {
     if (subPattern instanceof _Optional || subPattern instanceof _Maybe) optionalPatterns[key] = subPattern.pattern;else requiredPatterns[key] = subPattern;
   });
 
   //XXX: replace with underscore's _.allKeys if Meteor updates underscore to 1.8+ (or lodash)
   var allKeys = function allKeys(obj) {
     var keys = [];
-    if (_.isObject(obj)) {
+    if (_underscore2.default.isObject(obj)) {
       for (var key in obj) {
         keys.push(key);
       }
@@ -371,14 +364,14 @@ var testSubtree = function testSubtree(value, pattern) {
   for (var keys = allKeys(value), i = 0, length = keys.length; i < length; i++) {
     var key = keys[i];
     var subValue = value[key];
-    if (_.has(requiredPatterns, key)) {
+    if (_underscore2.default.has(requiredPatterns, key)) {
       var result = testSubtree(subValue, requiredPatterns[key]);
       if (result) {
         result.path = _prependPath(key, result.path);
         return result;
       }
       delete requiredPatterns[key];
-    } else if (_.has(optionalPatterns, key)) {
+    } else if (_underscore2.default.has(optionalPatterns, key)) {
       var result = testSubtree(subValue, optionalPatterns[key]);
       if (result) {
         result.path = _prependPath(key, result.path);
@@ -401,7 +394,7 @@ var testSubtree = function testSubtree(value, pattern) {
     }
   }
 
-  var keys = _.keys(requiredPatterns);
+  var keys = _underscore2.default.keys(requiredPatterns);
   if (keys.length) {
     return {
       message: "Missing key '" + keys[0] + "'",
@@ -414,7 +407,7 @@ var ArgumentChecker = function ArgumentChecker(args, description) {
   var self = this;
   // Make a SHALLOW copy of the arguments. (We'll be doing identity checks
   // against its contents.)
-  self.args = _.clone(args);
+  self.args = _underscore2.default.clone(args);
   // Since the common case will be to check arguments in order, and we splice
   // out arguments when we check them, make it so we splice out from the end
   // rather than the beginning.
@@ -422,15 +415,15 @@ var ArgumentChecker = function ArgumentChecker(args, description) {
   self.description = description;
 };
 
-_.extend(ArgumentChecker.prototype, {
+_underscore2.default.extend(ArgumentChecker.prototype, {
   checking: function checking(value) {
     var self = this;
     if (self._checkingOneValue(value)) return;
     // Allow check(arguments, [String]) or check(arguments.slice(1), [String])
     // or check([foo, bar], [String]) to count... but only if value wasn't
     // itself an argument.
-    if (_.isArray(value) || _.isArguments(value)) {
-      _.each(value, _.bind(self._checkingOneValue, self));
+    if (_underscore2.default.isArray(value) || _underscore2.default.isArguments(value)) {
+      _underscore2.default.each(value, _underscore2.default.bind(self._checkingOneValue, self));
     }
   },
   _checkingOneValue: function _checkingOneValue(value) {
@@ -440,7 +433,7 @@ _.extend(ArgumentChecker.prototype, {
       // the argument is an interned primitive, but it's still a good enough
       // check.)
       // (NaN is not === to itself, so we have to check specially.)
-      if (value === self.args[i] || _.isNaN(value) && _.isNaN(self.args[i])) {
+      if (value === self.args[i] || _underscore2.default.isNaN(value) && _underscore2.default.isNaN(self.args[i])) {
         self.args.splice(i, 1);
         return true;
       }
@@ -449,7 +442,7 @@ _.extend(ArgumentChecker.prototype, {
   },
   throwUnlessAllArgumentsHaveBeenChecked: function throwUnlessAllArgumentsHaveBeenChecked() {
     var self = this;
-    if (!_.isEmpty(self.args)) throw new Error("Did not check() all arguments during " + self.description);
+    if (!_underscore2.default.isEmpty(self.args)) throw new Error("Did not check() all arguments during " + self.description);
   }
 });
 
@@ -458,7 +451,7 @@ var _jsKeywords = ["do", "if", "in", "for", "let", "new", "try", "var", "case", 
 // Assumes the base of path is already escaped properly
 // returns key + base
 var _prependPath = function _prependPath(key, base) {
-  if (typeof key === "number" || key.match(/^[0-9]+$/)) key = "[" + key + "]";else if (!key.match(/^[a-z_$][0-9a-z_$]*$/i) || _.contains(_jsKeywords, key)) key = JSON.stringify([key]);
+  if (typeof key === "number" || key.match(/^[0-9]+$/)) key = "[" + key + "]";else if (!key.match(/^[a-z_$][0-9a-z_$]*$/i) || _underscore2.default.contains(_jsKeywords, key)) key = JSON.stringify([key]);
 
   if (base && base[0] !== "[") return key + '.' + base;
   return key + base;

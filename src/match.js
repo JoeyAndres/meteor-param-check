@@ -3,8 +3,18 @@
 // Things we explicitly do NOT support:
 //    - heterogenous arrays
 
-var currentArgumentChecker = new Meteor.EnvironmentVariable;
+import _ from 'underscore';
+import EJSON from 'ejson';
+
+import CheckError from './CheckError';
 import isPlainObject from './isPlainObject';
+
+var currentArgumentChecker = {
+  // TODO: Deal with fiber.
+  getOrNullIfOutsideFiber() {
+    return false;
+  }
+};
 
 /**
  * @summary Check that a value matches a [pattern](#matchpatterns).
@@ -68,17 +78,7 @@ var Match = exports.Match = {
   Integer: ['__integer__'],
 
   // XXX matchers should know how to describe themselves for errors
-  Error: Meteor.makeErrorType("Match.Error", function (msg) {
-    this.message = "Match error: " + msg;
-    // The path of the value that failed to match. Initially empty, this gets
-    // populated by catching and rethrowing the exception as it goes back up the
-    // stack.
-    // E.g.: "vals[3].entity.created"
-    this.path = "";
-    // If this gets sent over DDP, don't give full internal details but at least
-    // provide something better than 500 Internal server error.
-    this.sanitizedError = new Meteor.Error(400, "Match failed");
-  }),
+  Error: CheckError,
 
   // Tests to see if value matches pattern. Unlike check, it merely returns true
   // or false (unless an error other than Match.Error was thrown). It does not
@@ -86,6 +86,9 @@ var Match = exports.Match = {
   // XXX maybe also implement a Match.match which returns more information about
   //     failures but without using exception handling or doing what check()
   //     does with _failIfArgumentsAreNotAllChecked and Meteor.Error conversion
+  //
+  // TODO(jandres): _failIfArgumentsAreNotAllChecked is currently not supported,
+  //                until CHECK-4
 
   /**
    * @summary Returns true if the value matches the pattern.
@@ -95,20 +98,6 @@ var Match = exports.Match = {
    */
   test: function (value, pattern) {
     return !testSubtree(value, pattern);
-  },
-
-  // Runs `f.apply(context, args)`. If check() is not called on every element of
-  // `args` (either directly or in the first level of an array), throws an error
-  // (using `description` in the message).
-  //
-  _failIfArgumentsAreNotAllChecked: function (f, context, args, description) {
-    var argChecker = new ArgumentChecker(args, description);
-    var result = currentArgumentChecker.withValue(argChecker, function () {
-      return f.apply(context, args);
-    });
-    // If f didn't itself throw, make sure it checked all of its arguments.
-    argChecker.throwUnlessAllArgumentsHaveBeenChecked();
-    return result;
   }
 };
 

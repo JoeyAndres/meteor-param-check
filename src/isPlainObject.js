@@ -1,3 +1,5 @@
+import _ from 'underscore';
+
 // Copy of jQuery.isPlainObject for the server side from jQuery v1.11.2.
 
 var class2type = {};
@@ -27,7 +29,7 @@ function isWindow( obj ) {
   return obj != null && obj == obj.window;
 }
 
-export default isPlainObject = function( obj ) {
+function isPlainObject( obj ) {
   var key;
 
   // Must be an Object.
@@ -40,8 +42,8 @@ export default isPlainObject = function( obj ) {
   try {
     // Not own constructor property must be Object
     if ( obj.constructor &&
-         !hasOwn.call(obj, "constructor") &&
-         !hasOwn.call(obj.constructor.prototype, "isPrototypeOf") ) {
+      !hasOwn.call(obj, "constructor") &&
+      !hasOwn.call(obj.constructor.prototype, "isPrototypeOf") ) {
       return false;
     }
   } catch ( e ) {
@@ -63,3 +65,5 @@ export default isPlainObject = function( obj ) {
 
   return key === undefined || hasOwn.call( obj, key );
 };
+
+export default isPlainObject;

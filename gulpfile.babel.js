@@ -1,5 +1,6 @@
 import gulp from 'gulp';
 import babel from 'gulp-babel';
+import uglify from 'gulp-uglify';
 import concat from 'gulp-concat';
 
 gulp.task('transpile', () => {
@@ -7,6 +8,7 @@ gulp.task('transpile', () => {
     .pipe(babel({
       presets: ['es2015']
     }))
+    //.pipe(concat('check.min.js'))
     //.pipe(concat('dbridge.js'))
     .pipe(gulp.dest('dist'));
 });
