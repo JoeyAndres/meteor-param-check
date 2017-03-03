@@ -1,6 +1,6 @@
 {
   "name": "meteor-param-check",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Meteor check package ported.",
   "main": "dist/index.js",
   "scripts": {
@@ -20,7 +20,6 @@
   "devDependencies": {
     "babel-cli": "^6.23.0",
     "babel-core": "^6.23.1",
-    "babel-plugin-external-helpers": "^6.22.0",
     "babel-preset-env": "^1.1.10",
     "babel-preset-es2015": "^6.22.0",
     "chai": "^3.5.0",
